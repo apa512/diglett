@@ -2,7 +2,7 @@
   (:require [clojure.spec :as s]
             [clojure.string :as string]
             [clojure.walk :as walk]
-            [medley.core :refer [map-vals]]
+            [medley.core :refer [map-kv filter-keys]]
             [schema.core :as schema])
   (:import [org.jsoup Jsoup]
            [org.jsoup.nodes Element]
@@ -53,9 +53,14 @@
       (condp get (type (:schema spec))
         #{clojure.lang.PersistentArrayMap
           clojure.lang.PersistentHashMap}
-        (map-vals (fn [v]
-                    (extract v (->node nodes)))
-                  (:schema spec))
+        (filter-keys identity
+                     (map-kv (fn [k v]
+                               (let [v (extract v (->node nodes))]
+                                 (if (instance? schema.core.OptionalKey k)
+                                   (when v
+                                     [(:k k) v])
+                                   [k v])))
+                             (:schema spec)))
 
         #{clojure.lang.PersistentVector}
         (map #(extract (first (:schema spec)) %) nodes)
