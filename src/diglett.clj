@@ -67,7 +67,7 @@
           (pull (->node nodes) fns))
 
         #{clojure.lang.PersistentVector}
-        (map #(extract (first (:schema spec)) %) nodes)
+        (mapv #(extract (first (:schema spec)) %) nodes)
 
         (pull (->node nodes) fns))))
 
@@ -95,7 +95,7 @@
           nodes (if sel
                   (select target sel)
                   target)]
-      (map #(extract (assoc spec :extr fns) %) nodes)))
+      (mapv #(extract (assoc spec :extr fns) %) nodes)))
 
   java.lang.Integer
   (integer [n] n)
