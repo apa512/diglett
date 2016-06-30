@@ -8,7 +8,7 @@
            [org.jsoup.nodes Element]
            [org.jsoup.select Elements]))
 
-(declare ->schema schema->fn pull pull? spec ->spec)
+(declare ->schema schema->fn schema? pull spec ->spec)
 
 (s/def ::schema #(satisfies? schema/Schema (->schema %)))
 
@@ -36,6 +36,8 @@
 
 (defrecord Spec [schema extr])
 
+(defrecord Schema [schema])
+
 (defprotocol Extractable
   (extract [_ _])
   (text [_])
@@ -53,14 +55,16 @@
       (condp get (type (:schema spec))
         #{clojure.lang.PersistentArrayMap
           clojure.lang.PersistentHashMap}
-        (filter-keys identity
-                     (map-kv (fn [k v]
-                               (let [v (extract v (->node nodes))]
-                                 (if (instance? schema.core.OptionalKey k)
-                                   (when v
-                                     [(:k k) v])
-                                   [k v])))
-                             (:schema spec)))
+        (if (some schema? (vals (:schema spec)))
+          (filter-keys identity
+                       (map-kv (fn [k v]
+                                 (let [v (extract v (->node nodes))]
+                                   (if (instance? schema.core.OptionalKey k)
+                                     (when v
+                                       [(:k k) v])
+                                     [k v])))
+                               (:schema spec)))
+          (pull (->node nodes) fns))
 
         #{clojure.lang.PersistentVector}
         (map #(extract (first (:schema spec)) %) nodes)
@@ -122,11 +126,17 @@
       'maybe (schema->fn (:schema schema))
       nil)))
 
+(defn schema? [x]
+  (:schema x))
+
 (defn pull [x fns]
   ((apply comp (reverse fns)) x))
 
 (defn spec [schema & extr]
   (Spec. schema extr))
+
+(defn schema [schema]
+  (Schema. schema))
 
 (def ->spec spec)
 
