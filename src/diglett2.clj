@@ -153,10 +153,10 @@
 ;  #(attr* % k))
 ;
 (defn ->schema [x]
-  (walk/postwalk #(do
-                   (if (instance? Spec %)
+  (walk/postwalk #(if (or (instance? Spec %)
+                          (instance? StaticSchema %))
                     (:schema %)
-                    %))
+                    %)
                  x))
 ;
 ;(defn parse [^String html]
