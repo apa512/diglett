@@ -12,11 +12,11 @@
 ;
 ;(s/def ::schema #(satisfies? schema/Schema (->schema %)))
 ;
-;(s/def ::extr (s/and (s/or :e (s/cat :sel (s/? string?)
-;                                     :fns (s/* fn?))
-;                           :e nil?)
-;                     (s/conformer last)))
-;
+(ss/def ::extr (ss/and (ss/or :e (ss/cat :sel (ss/? string?)
+                                         :fns (ss/* fn?))
+                              :e nil?)
+                       (ss/conformer last)))
+
 ;(s/def ::spec (s/and (s/or :s (s/keys :req-un [::schema
 ;                                               ::extr])
 ;                           :s nil?)
@@ -27,26 +27,98 @@
 ;                                                    (conj (vec (seq %)))
 ;                                                    distinct
 ;                                                    (filter identity))))))))
-;
-;(defn select [node ^String css-selector]
-;  (let [^Elements result (.select node css-selector)]
-;    (if (.isEmpty result)
-;      nil
-;      result)))
-;
+
+(defn select [node ^String css-selector]
+  (let [^Elements result (.select node css-selector)]
+    (if (.isEmpty result)
+      nil
+      result)))
+
+(defn pull [x fns]
+  ((apply comp (reverse fns)) x))
+
 (defrecord Spec [schema extr])
 
-(defrecord StaticSchema [schema])
+(defrecord PassiveSchema [schema])
 
-(defmacro spec [schema & extr]
-  (Spec.
-   (if (and (sequential? schema) (= (first schema) 'quote))
-     (StaticSchema. (last schema))
-     schema)
-   extr))
-;
-;(defrecord Schema [schema])
-;
+(defn spec [schema & extr]
+  (Spec. schema extr))
+
+(defn pass [schema]
+  (PassiveSchema. schema))
+
+(defn iterable? [x]
+  (boolean ((supers (type x)) java.lang.Iterable)))
+
+(defn ->schema [x]
+  (walk/postwalk
+   #(if (or (instance? Spec %)
+            (instance? PassiveSchema %))
+      (:schema %)
+      %)
+   x))
+
+(defprotocol Diggable
+  (dig [_ _])
+  (->node [_])
+  (text [_]))
+
+(extend-protocol Diggable
+  Element
+  (->node [elem] elem)
+  (text [elem] (.text elem))
+
+  Elements
+  (->node [elems] (first elems))
+
+  ;clojure.lang.PersistentVector
+  ;(->node [elems] (first elems))
+
+  java.lang.String
+  (text [s] s))
+
+(defprotocol Extractable
+  (extract [_ _]))
+
+(extend-protocol Extractable
+  Spec
+  (extract [{:keys [schema extr]} target]
+    (let [{:keys [sel fns]} (ss/conform ::extr extr)
+          elems (cond-> target
+                  sel (select sel))
+          extracted (extract schema elems)]
+      (if (and (iterable? extracted) (not (instance? PassiveSchema schema)))
+        (map #(pull % fns) extracted)
+        (pull extracted fns))))
+
+  PassiveSchema
+  (extract [_ target]
+    target)
+
+  ;PassiveSchema
+  ;(extract [_ target]
+  ;  target)
+
+  ;Elements
+  ;(extract [spec target]
+  ;  :x)
+
+
+  ;clojure.lang.PersistentArrayMap
+  ;(extract [m target]
+  ;  (map-kv (fn [k v]
+  ;            [k (extract v target)])
+  ;          m))
+
+  clojure.lang.PersistentVector
+  (extract [[spec] target]
+    (mapv #(extract spec %) target))
+
+  java.lang.Object
+  (extract [x target]
+    (->node target))
+  )
+
 ;(defprotocol Extractable
 ;  (extract [_ _])
 ;  (text [_])
@@ -140,8 +212,6 @@
 ;    (some schema? x)
 ;    (:schema x)))
 ;
-;(defn pull [x fns]
-;  ((apply comp (reverse fns)) x))
 ;
 ;
 ;(defn schema [schema]
@@ -152,12 +222,5 @@
 ;(defn attr [k]
 ;  #(attr* % k))
 ;
-(defn ->schema [x]
-  (walk/postwalk #(if (or (instance? Spec %)
-                          (instance? StaticSchema %))
-                    (:schema %)
-                    %)
-                 x))
-;
-;(defn parse [^String html]
-;  (.. (Jsoup/parseBodyFragment html) (children)))
+(defn parse [^String html]
+  (.. (Jsoup/parseBodyFragment html) (children)))
