@@ -127,7 +127,9 @@
       nil)))
 
 (defn schema? [x]
-  (:schema x))
+  (if (sequential? x)
+    (some schema? x)
+    (:schema x)))
 
 (defn pull [x fns]
   ((apply comp (reverse fns)) x))
@@ -144,8 +146,10 @@
   #(attr* % k))
 
 (defn ->schema [x]
-  (walk/postwalk #(or (and (instance? Spec %) (:schema %))
-                      %) x))
+  (walk/postwalk #(cond
+                   (instance? Spec %) (:schema %)
+                   :else %)
+                 x))
 
 (defn parse [^String html]
   (.. (Jsoup/parseBodyFragment html) (children)))
