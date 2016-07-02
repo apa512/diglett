@@ -4,44 +4,46 @@
             [diglett :refer :all]
             [schema.core :as s]))
 
-(def realdonaldtrump (slurp "dev-resources/twitter/realdonaldtrump.html"))
-(def lindsayrockw (slurp "dev-resources/twitter/lindsayrockw.html"))
-
 (def phamdarian (slurp "dev-resources/linkedin/in_phamdarian.html"))
 
-(def TwitterProfile
-  {:twitter/username (spec s/Str ".ProfileHeaderCard-screennameLink > span")
-   :images [(spec s/Str ".AdaptiveMedia-singlePhoto img" (attr :src))]
-   :name (spec s/Str "h1.ProfileHeaderCard-name > a")
-   :photo (spec s/Str ".ProfileAvatar img" (attr :src))
-   (s/optional-key :summary) (spec (s/maybe (s/both s/Str (s/pred not-empty))) ".ProfileHeaderCard-bio")
-   :verified? (spec s/Bool ".ProfileHeaderCard-badges .Icon--verified" boolean)
-   :tweets/count (spec (s/maybe s/Int) ".ProfileNav-stat[data-nav=tweets]" (attr :title))
-   :following/count (spec (s/maybe s/Int) ".ProfileNav-stat[data-nav=following]" (attr :title))
-   :followers/count (spec (s/maybe s/Int) ".ProfileNav-stat[data-nav=followers]" (attr :title))
-   :likes/count (spec (s/maybe s/Int) ".ProfileNav-stat[data-nav=favorites]" (attr :title))
-   :banner (spec (s/maybe s/Str) ".ProfileCanopy-headerBg img" (attr :src))
-   :location (spec (s/maybe (s/both s/Str (s/pred not-empty))) ".ProfileHeaderCard-location")
-   :website/url (spec (s/maybe s/Str) ".ProfileHeaderCard-urlText a" (attr :href))})
+(def realdonaldtrump (slurp "dev-resources/twitter/realdonaldtrump.html"))
+
+(def Courses
+  (spec (pass [{:name s/Str
+                :school s/Str}])
+        "#courses > ul > li"
+        #(mapcat (fn [elem]
+                   (let [school (extract (spec s/Str "h4.item-title" text) elem)
+                         courses (extract (spec [s/Str] "li.course > span:first-child" text) elem)]
+                     (mapv (fn [course]
+                             {:school school
+                              :name course})
+                           courses)))
+                 %)))
+
+(def CourseNames
+  (spec [s/Str] "#courses li.course > span:first-child" #_text))
 
 (def LinkedinProfile
-  {:courses (spec 's/Str "#courses > ul > li")
-   ;:courses [(d/spec {:name s/Str
-   ;                   (s/optional-key :school) s/Str}
-   ;                  "#courses > ul > li"
-   ;                  (fn [elem]
-   ;                    (let [school (d/extract (d/spec s/Str "h4.item-title") elem)
-   ;                          courses (d/extract [(d/spec s/Str "li.course > span:first-child")] elem)]
-   ;                      (mapv (fn [course]
-   ;                              (utils/compact {:name course
-   ;                                              :school school}))
-   ;                            courses))))]
-   })
+  {:courses Courses
+   (s/optional-key :photo) (spec s/Str ".profile-picture img" (some-fn (attr :src) (attr :data-delayed-url)))})
 
-#_(deftest diglett-test
-  ;(prn (extract LinkedinProfile phamdarian))
-  (prn (->schema LinkedinProfile))
-  (testing "schema->fn"
-    (are [x y] (= y (schema->fn x))
-         (s/maybe s/Str) text
-         s/Str text)))
+(def TwitterProfile
+  {(s/optional-key :following/count) (spec s/Int ".ProfileNav-stat[data-nav=following]" (attr :title))})
+
+(deftest diglett2-test
+  (let [courses (extract Courses (parse phamdarian))]
+    (is (= (count courses) 13))
+    (is (= (first courses) {:school "California State University-Fullerton"
+                            :name "Financial Accounting (ACCT 201A)"})))
+
+  (let [course-names (extract CourseNames (parse phamdarian))]
+    (is (= (count course-names) 13))
+    (is (= (first course-names) "Financial Accounting (ACCT 201A)"))
+    (is (= (last course-names) "International Economics (ECON 333)")))
+
+  (let [linkedin-profile (extract LinkedinProfile (parse phamdarian))]
+    (prn linkedin-profile))
+
+  (let [twitter-profile (extract TwitterProfile (parse realdonaldtrump))]
+    (prn twitter-profile)))
