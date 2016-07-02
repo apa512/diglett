@@ -73,7 +73,7 @@
     (condp = (cond-> expl
                (sequential? expl) first)
       'Str #(some-> % text)
-      'Int integer
+      'Int #(some-> % integer)
       identity)))
 
 (extend-protocol Diggable
