@@ -47,8 +47,8 @@
 (defn pass [schema]
   (PassiveSchema. schema))
 
-(defn iterable? [x]
-  (boolean (and x ((supers (type x)) java.lang.Iterable))))
+(defn many? [x]
+  (boolean (or (sequential? x) (instance? Elements x))))
 
 (defn ->schema [x]
   (walk/postwalk
@@ -96,6 +96,9 @@
              not-empty
              Integer.))
 
+  java.lang.Integer
+  (integer [n] n)
+
   nil
   (->node [_] nil)
   (attr* [_ _] nil))
@@ -112,7 +115,7 @@
           extracted (extract schema elems)
           extract* #((coercer (->schema schema))
                      (pull % fns))]
-      (if (and (iterable? extracted) (not (instance? PassiveSchema schema)))
+      (if (and (many? extracted) (not (instance? PassiveSchema schema)))
         (mapv extract* extracted)
         (extract* extracted))))
 

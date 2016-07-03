@@ -26,7 +26,12 @@
 
 (def LinkedinProfile
   {:courses Courses
-   (s/optional-key :photo) (spec s/Str ".profile-picture img" (some-fn (attr :src) (attr :data-delayed-url)))})
+   (s/optional-key :photo) (spec s/Str ".profile-picture img" (some-fn (attr :src) (attr :data-delayed-url)))
+   :educations (spec [{:headline (spec s/Str "h5.item-subtitle")
+                       :school (spec {:name (spec s/Str "h4.item-title")})
+                       }]
+                     "section#education li.school")
+   })
 
 (def TwitterProfile
   {(s/optional-key :following/count) (spec s/Int ".ProfileNav-stat[data-nav=following]" (attr :title))})
