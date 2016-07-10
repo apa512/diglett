@@ -80,6 +80,8 @@
   Element
   (->node [elem] elem)
   (text [elem] (.text elem))
+  (integer [elem]
+    (integer (text elem)))
   (attr* [elem k]
     (let [s (.get (.attributes elem) (name k))]
       (when (seq s) s)))
@@ -90,8 +92,7 @@
   java.lang.String
   (text [s] s)
   (integer [s]
-    (some->> s
-             (string/replace #"," "")
+    (some->> (string/replace s #"," "")
              (re-find #"\d+")
              not-empty
              Integer.))
