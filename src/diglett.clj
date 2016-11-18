@@ -107,7 +107,7 @@
              (string/replace #"," "")
              (re-find #"\d+")
              not-empty
-             Integer.))
+             BigInteger.))
 
   nil
   (->node [_] nil)
