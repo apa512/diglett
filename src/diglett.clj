@@ -85,9 +85,9 @@
     (some->> (string/replace s #"," "")
              (re-find #"\d+")
              not-empty
-             Integer.))
+             BigInteger.))
 
-  java.lang.Integer
+  java.math.BigInteger
   (integer [n] n)
 
   nil
