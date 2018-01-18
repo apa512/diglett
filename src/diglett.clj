@@ -1,5 +1,5 @@
 (ns diglett
-  (:require [clojure.spec :as s]
+  (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
             [clojure.walk :as walk]
             [medley.core :refer [map-kv filter-keys]]
