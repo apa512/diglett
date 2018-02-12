@@ -5,5 +5,5 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.jsoup/jsoup "1.9.2"]
-                 [medley "0.8.2"]
+                 [medley "1.0.0"]
                  [prismatic/schema "1.1.2"]])
