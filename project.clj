@@ -1,4 +1,4 @@
-(defproject com.apa512/diglett "3.0.0-SNAPSHOT"
+(defproject com.apa512/diglett "3.0.0"
   :description "Small head, unknown body"
   :url "https://github.com/apa512/diglett"
   :license {:name "Eclipse Public License"
